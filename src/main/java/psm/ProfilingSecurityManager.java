@@ -25,6 +25,9 @@
  */
 package psm;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.security.AccessControlContext;
@@ -63,17 +66,31 @@ import java.util.List;
  */
 public class ProfilingSecurityManager extends SecurityManager {
 
+    private static final String NAME = "ProfilingSecurityManager";
+
     /* Variables of pure convenience */
     private final String thisClassName;
     private final String thisCodeSourceURLString;
-    private final String psmMsg = "ProfilingSecurityManager";
     private final List<String> cacheList = new ArrayList<>();
+
+    private PrintStream out;
 
     // ---------------------------------
     public ProfilingSecurityManager() {
         thisClassName = this.getClass().getName();
         CodeSource thisCodeSource = this.getClass().getProtectionDomain().getCodeSource();
         thisCodeSourceURLString = thisCodeSource.getLocation().toString();
+        String logFile = System.getProperty("psm.log.file");
+        if (logFile != null) {
+            try {
+                out = new PrintStream(new FileOutputStream(logFile, true), true);
+            } catch (FileNotFoundException ex) {
+                System.err.println("Could not open log file, " + logFile + ", falling back on stdout");
+                out = System.out;
+            }
+        } else {
+            out = System.out;
+        }
     }
 
     // -----------------
@@ -83,14 +100,22 @@ public class ProfilingSecurityManager extends SecurityManager {
         final StackTraceElement[] stack = t.getStackTrace();
         // Avoid recursion owing to actions in this class itself inducing callbacks
         if (!isRecur(stack)) {
-            buildRules(permission, AccessController.getContext());
+            try {
+                super.checkPermission(permission);
+            } catch (SecurityException ex) {
+                buildRules(permission, AccessController.getContext());
+            }
         }
     }
 
     // -----------------
     @Override
     public void checkPermission(final Permission permission, final Object context) {
-        buildRules(permission, (AccessControlContext) context);
+        try {
+            buildRules(permission, (AccessControlContext) context);
+        } catch (SecurityException ex) {
+            buildRules(permission, AccessController.getContext());
+        }
     }
 
     // -----------------
@@ -102,7 +127,7 @@ public class ProfilingSecurityManager extends SecurityManager {
                 for (int i = 0; i < protectionDomain.length; ++i) {
                     final String grant = formatRule(permission, protectionDomain[i]);
                     if (null != grant && !isCached(grant)) {
-                        System.out.println(grant);
+                        out.println(grant);
                     }
                 }
             }
@@ -119,8 +144,7 @@ public class ProfilingSecurityManager extends SecurityManager {
         boolean v = false;
         for (int i = st.length - 1; i >= 1; --i) {
             final boolean c = st[i].getClassName().equals(thisClassName);
-            final boolean m = st[i].getMethodName().equals("buildRules");
-            if (c && m) {
+            if (c) {
                 v = true;
                 break;
             }
@@ -221,7 +245,7 @@ public class ProfilingSecurityManager extends SecurityManager {
     // -----------------
     @Override
     public String toString() {
-        return "SecurityManager:  " + psmMsg;
+        return "SecurityManager:  " + NAME;
     }
 
 }
