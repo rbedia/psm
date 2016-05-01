@@ -99,7 +99,7 @@ public class Main {
         for (String property : properties) {
             String value = System.getProperty(property);
             if (value != null) {
-                replacements.put(value, "{" + property + "}");
+                replacements.put(value, "${" + property + "}");
             }
         }
         return replacements;
