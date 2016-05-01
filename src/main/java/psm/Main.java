@@ -27,7 +27,9 @@ package psm;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -47,11 +49,17 @@ public class Main {
     private static final Logger LOG = Logger.getLogger(Main.class.getName());
 
     public static void main(String[] args) {
+        Main main = new Main();
+        Codebases codebases = main.readCodebases(System.in);
+        main.writeCodebases(codebases, System.out);
+    }
+
+    private Codebases readCodebases(InputStream in) {
         Pattern pattern = Pattern.compile(
                 "grant codeBase \"(.*)\" \\{(permission .*)\\};");
         Codebases codebases = new Codebases();
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(System.in))) {
+                new InputStreamReader(in))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 Matcher matcher = pattern.matcher(line);
@@ -64,22 +72,26 @@ public class Main {
         } catch (IOException ex) {
             LOG.log(Level.WARNING, null, ex);
         }
+        return codebases;
+    }
+
+    private void writeCodebases(Codebases codebases, PrintStream out) {
         Map<String, String> properties = getProperties();
         for (Map.Entry<String, Permissions> entrySet : codebases.entrySet()) {
             String codebase = entrySet.getKey();
             codebase = makeReplacement(properties, codebase);
             Permissions permissions = entrySet.getValue();
-            System.out.println("grant codeBase \"" + codebase + "\" {");
+            out.println("grant codeBase \"" + codebase + "\" {");
             for (String permission : permissions) {
                 permission = makeReplacement(properties, permission);
-                System.out.println("    " + permission);
+                out.println("    " + permission);
             }
-            System.out.println("};");
-            System.out.println();
+            out.println("};");
+            out.println();
         }
     }
 
-    private static String makeReplacement(Map<String, String> properties, String input) {
+    private String makeReplacement(Map<String, String> properties, String input) {
         for (Map.Entry<String, String> entrySet : properties.entrySet()) {
             String key = entrySet.getKey();
             String value = entrySet.getValue();
@@ -88,7 +100,7 @@ public class Main {
         return input;
     }
 
-    private static Map<String, String> getProperties() {
+    private Map<String, String> getProperties() {
         Map<String, String> replacements = new TreeMap<>();
         String[] properties = {
             "user.home",
@@ -105,7 +117,7 @@ public class Main {
         return replacements;
     }
 
-    public static class Codebases extends HashMap<String, Permissions> {
+    private static class Codebases extends HashMap<String, Permissions> {
 
         public void add(String codebase, String permission) {
             Permissions permissions = get(codebase);
@@ -117,6 +129,6 @@ public class Main {
         }
     }
 
-    public static class Permissions extends HashSet<String> {
+    private static class Permissions extends HashSet<String> {
     }
 }
