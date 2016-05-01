@@ -44,12 +44,12 @@ import java.util.regex.Pattern;
  *
  * @author Rafael Bedia
  */
-public class Main {
+public class Parser {
 
-    private static final Logger LOG = Logger.getLogger(Main.class.getName());
+    private static final Logger LOG = Logger.getLogger(Parser.class.getName());
 
     public static void main(String[] args) {
-        Main main = new Main();
+        Parser main = new Parser();
         Codebases codebases = main.readCodebases(System.in);
         main.writeCodebases(codebases, System.out);
     }

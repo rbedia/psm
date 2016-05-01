@@ -19,7 +19,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>psm.Main</mainClass>
+                            <mainClass>psm.Parser</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
